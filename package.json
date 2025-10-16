@@ -1,5 +1,5 @@
 {
-  npm install --save-dev jest-environment-jsdom
+  
   "name": "dungeon-crawler-rpg-od",
   "version": "1.0.0",
   "description": "",
