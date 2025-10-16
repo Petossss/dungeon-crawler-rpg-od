@@ -1,18 +1,5 @@
 {
-  "name": "dungeon-crawler-rpg-od",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "jest --withNoTest"
-  },
   "dependencies": {
     "howler": "^2.2.3"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
-  },
-  "author": "",
-  "license": "ISC"
+  }
 }
