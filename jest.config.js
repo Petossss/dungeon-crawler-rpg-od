@@ -5,3 +5,7 @@ export default {
   coverageReporters: ['lcov', 'text-summary'],
   testMatch: ['**/?(*.)+(spec|test).[jt]s?(x)'],
 };
+export default {
+  testEnvironment: "jsdom",
+  transform: {}
+};
