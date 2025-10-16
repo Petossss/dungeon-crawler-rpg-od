@@ -3,3 +3,8 @@
     "howler": "^2.2.3"
   }
 }
+
+"scripts": {
+  "test": "jest --coverage"
+}
+
