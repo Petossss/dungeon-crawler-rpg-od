@@ -69,7 +69,7 @@ global.player = {
 };
 
 // Importa o arquivo player.js após mocks
-require('./player.js');
+require('./assets/js/player.js');
 
 // Agora podemos acessar funções globais criadas pelo player.js
 test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
