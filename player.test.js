@@ -1,7 +1,8 @@
 /**
  * @jest-environment jsdom
  */
-
+global.player = JSON.parse(localStorage.getItem("playerData"));
+window.player = global.player; // 🔥 garante que o script enxergue o mesmo objeto
 beforeEach(() => {
   jest.resetModules();
 
@@ -45,6 +46,10 @@ beforeEach(() => {
   };
   localStorage.setItem("playerData", JSON.stringify(fakePlayer));
 
+  // 🧩 Define o player global ANTES de importar o script
+  global.player = JSON.parse(localStorage.getItem("playerData"));
+  window.player = global.player;
+
   // Mocks necessários para player.js
   global.enemy = { rewards: { exp: 50 } };
   global.playerLoadStats = jest.fn();
@@ -58,7 +63,6 @@ beforeEach(() => {
   global.playerDead = false;
   global.combatPanel = document.createElement('div');
 
-  // ✅ Adiciona elementos esperados pelo playerLoadStats()
   document.body.innerHTML = `
     <div id="lvlupSelect"></div>
     <div id="lvlupPanel"></div>
@@ -72,7 +76,6 @@ beforeEach(() => {
     <div id="player-combat-info"></div>
   `;
 
-  // Esses elementos são usados diretamente (não via getElementById)
   global.playerHpElement = document.createElement('div');
   global.playerAtkElement = document.createElement('div');
   global.playerDefElement = document.createElement('div');
