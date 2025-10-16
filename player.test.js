@@ -2,18 +2,25 @@
  * @jest-environment jsdom
  */
 
-describe("Funções do Player", () => {
+beforeEach(() => {
+  // Mock do localStorage
+  const store = {};
+  global.localStorage = {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => (store[key] = value.toString()),
+    clear: () => Object.keys(store).forEach((k) => delete store[k]),
+  };
 
-  // 1️⃣ Mocka o localStorage ANTES de importar player.js
-  const fakePlayerData = JSON.stringify({
-    name: "Hero",
+  // Mock do player com valores iniciais válidos
+  const fakePlayer = {
+    name: "Herói",
     lvl: 1,
     exp: {
       expCurr: 0,
-      expMax: 100,
       expCurrLvl: 0,
+      expMax: 100,
       expMaxLvl: 100,
-      lvlGained: 0
+      lvlGained: 0,
     },
     stats: {
       hp: 100,
@@ -23,7 +30,9 @@ describe("Funções do Player", () => {
       atkSpd: 1,
       vamp: 0,
       critRate: 5,
-      critDmg: 50
+      critDmg: 50,
+      hpPercent: 100,
+      expPercent: 0,
     },
     bonusStats: {
       hp: 0,
@@ -32,82 +41,55 @@ describe("Funções do Player", () => {
       atkSpd: 0,
       vamp: 0,
       critRate: 0,
-      critDmg: 0
+      critDmg: 0,
     },
     gold: 100,
-    inCombat: false
-  });
+    inCombat: false,
+  };
 
-  beforeAll(() => {
-    // Mock de localStorage
-    Object.defineProperty(window, "localStorage", {
-      value: {
-        getItem: jest.fn(() => fakePlayerData),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
-      },
-      writable: true,
-    });
+  global.enemy = { rewards: { exp: 50 } };
 
-    // Mock básico do DOM (evita erros de querySelector)
-    document.body.innerHTML = `
-      <div id="lvlupSelect"></div>
-      <div id="lvlupPanel"></div>
-      <div id="player-name"></div>
-      <div id="player-exp"></div>
-      <div id="player-gold"></div>
-      <div id="bonus-stats"></div>
-      <div id="player-hp-battle"></div>
-      <div id="player-hp-dmg"></div>
-      <div id="player-exp-bar"></div>
-      <div id="player-combat-info"></div>
-    `;
+  global.player = fakePlayer;
+  window.player = global.player; // 🔥 Garante que player dentro do script seja o mesmo
+  localStorage.setItem("playerData", JSON.stringify(fakePlayer));
 
-    // Mocka elementos de stats
-    global.playerHpElement = document.createElement("div");
-    global.playerAtkElement = document.createElement("div");
-    global.playerDefElement = document.createElement("div");
-    global.playerAtkSpdElement = document.createElement("div");
-    global.playerVampElement = document.createElement("div");
-    global.playerCrateElement = document.createElement("div");
-    global.playerCdmgElement = document.createElement("div");
+  // Mock das funções DOM usadas no código
+  document.body.innerHTML = `
+    <div id="player-name"></div>
+    <div id="player-exp"></div>
+    <div id="player-gold"></div>
+    <div id="bonus-stats"></div>
+    <div id="lvlupSelect"></div>
+    <div id="lvlupPanel"></div>
+  `;
 
-    // Mock de funções globais e sons
-    global.sfxOpen = { play: jest.fn() };
-    global.sfxDecline = { play: jest.fn() };
-    global.sfxSell = { play: jest.fn() };
-    global.sfxItem = { play: jest.fn() };
-    global.sfxLvlUp = { play: jest.fn() };
-    global.sfxDeny = { play: jest.fn() };
-    global.dungeon = { status: { exploring: true, paused: false } };
-    global.enemy = { rewards: { exp: 50 } };
-    global.playerDead = false;
-    global.combatPanel = document.createElement("div");
-    global.sellAllElement = document.createElement("button");
-    global.sellRarityElement = { value: "All" };
-    global.defaultModalElement = document.createElement("div");
-    global.addCombatLog = jest.fn();
-    global.saveData = jest.fn();
-    global.showEquipment = jest.fn();
-    global.showInventory = jest.fn();
-    global.applyEquipmentStats = jest.fn();
-    global.sellAll = jest.fn();
-    global.nFormatter = (n) => n; // não formata, só retorna o número
-  });
+  window.showEquipment = jest.fn();
+  window.showInventory = jest.fn();
+  window.applyEquipmentStats = jest.fn();
+  window.nFormatter = (n) => n;
+  window.saveData = jest.fn();
+  window.sfxOpen = { play: jest.fn() };
+  window.sfxDecline = { play: jest.fn() };
+  window.sfxLvlUp = { play: jest.fn() };
+  window.sfxItem = { play: jest.fn() };
+  window.sfxSell = { play: jest.fn() };
+  window.sfxDeny = { play: jest.fn() };
+  window.addCombatLog = jest.fn();
+  window.combatPanel = document.createElement("div");
+  window.combatPanel.id = "combat-panel";
+});
 
-  // Importa o player.js só DEPOIS do mock estar pronto
-  beforeAll(() => {
-    require("./assets/js/player.js");
-  });
+// Importa o script após mocks
+beforeAll(() => {
+  require("../assets/js/player.js");
+});
 
-  beforeEach(() => {
-    // Reinicializa o jogador antes de cada teste
-    global.player = JSON.parse(fakePlayerData);
-  });
-
-  // 2️⃣ Testes
+describe("Funções do Player", () => {
   test("playerLvlUp deve aumentar o nível e os atributos corretamente", () => {
+    // Garante que o jogador possa subir de nível
+    global.player.exp.expCurr = global.player.exp.expMax;
+    window.player = global.player;
+
     const prevLvl = global.player.lvl;
     const prevExpMax = global.player.exp.expMax;
 
@@ -128,4 +110,3 @@ describe("Funções do Player", () => {
     expect(spy).toHaveBeenCalled();
   });
 });
-
