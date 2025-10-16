@@ -1,19 +1,40 @@
 name: Build
+
 on:
   push:
     branches:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
   sonarqube:
     name: SonarQube
     runs-on: windows-latest
+
     steps:
+      # 1️⃣ Faz o checkout do código
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0  # Necessário para o Sonar comparar commits corretamente
+
+      # 2️⃣ Instala o Node.js (necessário para rodar Jest)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3️⃣ Instala dependências do projeto
+      - name: Install dependencies
+        run: npm install
+
+      # 4️⃣ Roda os testes e gera o relatório de cobertura (coverage/lcov.info)
+      - name: Run tests with coverage
+        run: npm test
+
+      # 5️⃣ Roda o SonarQube Scanner
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io  # ou o URL do seu servidor SonarQube local, se for o caso
