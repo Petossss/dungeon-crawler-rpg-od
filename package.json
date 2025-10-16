@@ -15,3 +15,4 @@
   "author": "",
   "license": "ISC"
 }
+npm install --save-dev jest-environment-jsdom
