@@ -2,12 +2,9 @@
  * @jest-environment jsdom
  */
 
-// ✅ Recarrega o módulo do player depois de configurar o ambiente
 beforeEach(() => {
-  // Limpa o cache dos módulos (para forçar reload do player.js)
   jest.resetModules();
 
-  // Simula dados de jogador no localStorage
   const fakePlayer = {
     name: "Hero",
     lvl: 1,
@@ -40,17 +37,15 @@ beforeEach(() => {
     inCombat: false
   };
 
-  // ✅ Mock de localStorage
   global.localStorage = {
     store: {},
     getItem(key) { return this.store[key] || null; },
     setItem(key, value) { this.store[key] = value.toString(); },
     clear() { this.store = {}; }
   };
-
   localStorage.setItem("playerData", JSON.stringify(fakePlayer));
 
-  // ✅ Mocks de dependências do jogo
+  // Mocks necessários para player.js
   global.enemy = { rewards: { exp: 50 } };
   global.playerLoadStats = jest.fn();
   global.lvlupPopup = jest.fn();
@@ -63,6 +58,7 @@ beforeEach(() => {
   global.playerDead = false;
   global.combatPanel = document.createElement('div');
 
+  // ✅ Adiciona elementos esperados pelo playerLoadStats()
   document.body.innerHTML = `
     <div id="lvlupSelect"></div>
     <div id="lvlupPanel"></div>
@@ -70,33 +66,41 @@ beforeEach(() => {
     <div id="player-exp"></div>
     <div id="player-gold"></div>
     <div id="bonus-stats"></div>
+    <div id="player-hp-battle"></div>
+    <div id="player-hp-dmg"></div>
+    <div id="player-exp-bar"></div>
+    <div id="player-combat-info"></div>
   `;
 
-  // ✅ Importa o player.js só depois de configurar o ambiente
+  // Esses elementos são usados diretamente (não via getElementById)
+  global.playerHpElement = document.createElement('div');
+  global.playerAtkElement = document.createElement('div');
+  global.playerDefElement = document.createElement('div');
+  global.playerAtkSpdElement = document.createElement('div');
+  global.playerVampElement = document.createElement('div');
+  global.playerCrateElement = document.createElement('div');
+  global.playerCdmgElement = document.createElement('div');
+
   require('./assets/js/player.js');
 });
 
-// 🔹 Testes
 test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
-  const player = JSON.parse(localStorage.getItem("playerData"));
-  const prevLvl = player.lvl;
-  const prevExpMax = player.exp.expMax;
+  const prevLvl = global.player.lvl;
+  const prevExpMax = global.player.exp.expMax;
 
   window.playerLvlUp();
 
-  expect(player.lvl).toBe(prevLvl + 1);
-  expect(player.exp.expMax).toBeGreaterThan(prevExpMax);
-  expect(player.bonusStats.hp).toBeGreaterThan(0);
+  expect(global.player.lvl).toBe(prevLvl + 1);
+  expect(global.player.exp.expMax).toBeGreaterThan(prevExpMax);
+  expect(global.player.bonusStats.hp).toBeGreaterThan(0);
 });
 
 test('playerExpGain deve adicionar experiência e chamar playerLoadStats', () => {
-  const player = JSON.parse(localStorage.getItem("playerData"));
   const spy = jest.spyOn(window, 'playerLoadStats');
-  const expAntes = player.exp.expCurr;
+  const expAntes = global.player.exp.expCurr;
 
   window.playerExpGain();
 
-  expect(player.exp.expCurr).toBe(expAntes + global.enemy.rewards.exp);
+  expect(global.player.exp.expCurr).toBe(expAntes + global.enemy.rewards.exp);
   expect(spy).toHaveBeenCalled();
 });
-
