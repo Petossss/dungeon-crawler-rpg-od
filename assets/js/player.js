@@ -1,3 +1,11 @@
+// Evita que o teste perca o mock de player
+if (typeof player === "undefined" || player === null) {
+  var player = {
+    lvl: 1,
+    exp: { expCurr: 0, expCurrLvl: 0, expMax: 100 },
+    bonusStats: { hp: 10, atk: 5, def: 2, atkSpd: 1.2, vamp: 0.5, critRate: 0.3, critDmg: 1.5 },
+  };
+}
 let player = JSON.parse(localStorage.getItem("playerData"));
 let inventoryOpen = false;
 let leveled = false;
