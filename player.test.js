@@ -1,275 +1,96 @@
-let player = JSON.parse(localStorage.getItem("playerData"));
-let inventoryOpen = false;
-let leveled = false;
-const lvlupSelect = document.querySelector("#lvlupSelect");
-const lvlupPanel = document.querySelector("#lvlupPanel");
+/**
+ * @jest-environment jsdom
+ */
 
-const playerExpGain = () => {
-    player.exp.expCurr += enemy.rewards.exp;
-    player.exp.expCurrLvl += enemy.rewards.exp;
+// Mock do localStorage
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: key => store[key] || null,
+    setItem: (key, value) => { store[key] = value.toString(); },
+    clear: () => { store = {}; }
+  };
+})();
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-    while (player.exp.expCurr >= player.exp.expMax) {
-        playerLvlUp();
-    }
-    if (leveled) {
-        lvlupPopup();
-    }
+// Mock básico do DOM
+document.body.innerHTML = `
+  <div id="lvlupSelect"></div>
+  <div id="lvlupPanel"></div>
+  <div id="player-name"></div>
+  <div id="player-exp"></div>
+  <div id="player-gold"></div>
+  <div id="bonus-stats"></div>
+`;
 
-    playerLoadStats();
-}
+// Mock de funções e variáveis globais
+global.sfxOpen = { play: jest.fn() };
+global.sfxDecline = { play: jest.fn() };
+global.sfxSell = { play: jest.fn() };
+global.sfxItem = { play: jest.fn() };
+global.sfxLvlUp = { play: jest.fn() };
+global.sfxDeny = { play: jest.fn() };
 
-// Levels up the player
-const playerLvlUp = () => {
-    leveled = true;
+global.dungeon = { status: { exploring: true, paused: false } };
+global.enemy = { rewards: { exp: 50 } };
+global.playerDead = false;
+global.combatPanel = document.createElement('div');
+global.nFormatter = (n) => n; // função fake que só retorna o número
+global.addCombatLog = jest.fn();
+global.saveData = jest.fn();
+global.showEquipment = jest.fn();
+global.showInventory = jest.fn();
+global.applyEquipmentStats = jest.fn();
+global.sellAll = jest.fn();
+global.sellRarityElement = { value: "All", onclick: jest.fn(), onchange: jest.fn(), className: "" };
+global.sellAllElement = { onclick: jest.fn() };
+global.defaultModalElement = document.createElement('div');
 
-    // Calculates the excess exp and the new exp required to level up
-    let expMaxIncrease = Math.floor(((player.exp.expMax * 1.1) + 100) - player.exp.expMax);
-    if (player.lvl > 100) {
-        expMaxIncrease = 1000000;
-    }
-    let excessExp = player.exp.expCurr - player.exp.expMax;
-    player.exp.expCurrLvl = excessExp;
-    player.exp.expMaxLvl = expMaxIncrease;
+// Mock do player inicial
+global.player = {
+  name: "Hero",
+  lvl: 1,
+  exp: {
+    expCurr: 0,
+    expMax: 100,
+    expCurrLvl: 0,
+    expMaxLvl: 100,
+    expPercent: 0,
+    lvlGained: 0
+  },
+  bonusStats: {
+    hp: 0, atk: 0, def: 0, atkSpd: 0, critRate: 0, critDmg: 0, vamp: 0
+  },
+  stats: {
+    hp: 100, hpMax: 100, atk: 10, def: 5, atkSpd: 1, critRate: 5, critDmg: 50, vamp: 0
+  },
+  gold: 100,
+  inCombat: false
+};
 
-    // Increase player level and maximum exp
-    player.lvl++;
-    player.exp.lvlGained++;
-    player.exp.expMax += expMaxIncrease;
+// Importa o arquivo player.js após mocks
+import './player.js';
 
-    // Increase player bonus stats per level
-    player.bonusStats.hp += 4;
-    player.bonusStats.atk += 2;
-    player.bonusStats.def += 2;
-    player.bonusStats.atkSpd += 0.15;
-    player.bonusStats.critRate += 0.1;
-    player.bonusStats.critDmg += 0.25;
-}
+// Agora podemos acessar funções globais criadas pelo player.js
+test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
+  const prevLvl = player.lvl;
+  const prevExpMax = player.exp.expMax;
 
-// Refresh the player stats
-const playerLoadStats = () => {
-    showEquipment();
-    showInventory();
-    applyEquipmentStats();
+  player.exp.expCurr = 120; // simula que ele atingiu XP suficiente
+  playerLvlUp();
 
-    let rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
-    if (player.stats.hp > player.stats.hpMax) {
-        player.stats.hp = player.stats.hpMax;
-    }
-    player.stats.hpPercent = Number((player.stats.hp / player.stats.hpMax) * 100).toFixed(2).replace(rx, "$1");
-    player.exp.expPercent = Number((player.exp.expCurrLvl / player.exp.expMaxLvl) * 100).toFixed(2).replace(rx, "$1");
+  expect(player.lvl).toBe(prevLvl + 1);
+  expect(player.exp.expMax).toBeGreaterThan(prevExpMax);
+  expect(player.bonusStats.hp).toBeGreaterThan(0);
+});
 
-    // Generate battle info for player if in combat
-    if (player.inCombat || playerDead) {
-        const playerCombatHpElement = document.querySelector('#player-hp-battle');
-        const playerHpDamageElement = document.querySelector('#player-hp-dmg');
-        const playerExpElement = document.querySelector('#player-exp-bar');
-        const playerInfoElement = document.querySelector('#player-combat-info');
-        playerCombatHpElement.innerHTML = `&nbsp${nFormatter(player.stats.hp)}/${nFormatter(player.stats.hpMax)}(${player.stats.hpPercent}%)`;
-        playerCombatHpElement.style.width = `${player.stats.hpPercent}%`;
-        playerHpDamageElement.style.width = `${player.stats.hpPercent}%`;
-        playerExpElement.style.width = `${player.exp.expPercent}%`;
-        playerInfoElement.innerHTML = `${player.name} Lv.${player.lvl} (${player.exp.expPercent}%)`;
-    }
+test('playerExpGain deve adicionar experiência e chamar playerLoadStats', () => {
+  const spy = jest.spyOn(global, 'playerLoadStats');
+  player.exp.expCurr = 0;
+  player.exp.expMax = 100;
 
-    // Header
-    document.querySelector("#player-name").innerHTML = `<i class="fas fa-user"></i>${player.name} Lv.${player.lvl}`;
-    document.querySelector("#player-exp").innerHTML = `<p>Exp</p> ${nFormatter(player.exp.expCurr)}/${nFormatter(player.exp.expMax)} (${player.exp.expPercent}%)`;
-    document.querySelector("#player-gold").innerHTML = `<i class="fas fa-coins" style="color: #FFD700;"></i>${nFormatter(player.gold)}`;
+  playerExpGain();
 
-    // Player Stats
-    playerHpElement.innerHTML = `${nFormatter(player.stats.hp)}/${nFormatter(player.stats.hpMax)} (${player.stats.hpPercent}%)`;
-    playerAtkElement.innerHTML = nFormatter(player.stats.atk);
-    playerDefElement.innerHTML = nFormatter(player.stats.def);
-    playerAtkSpdElement.innerHTML = player.stats.atkSpd.toFixed(2).replace(rx, "$1");
-    playerVampElement.innerHTML = (player.stats.vamp).toFixed(2).replace(rx, "$1") + "%";
-    playerCrateElement.innerHTML = (player.stats.critRate).toFixed(2).replace(rx, "$1") + "%";
-    playerCdmgElement.innerHTML = (player.stats.critDmg).toFixed(2).replace(rx, "$1") + "%";
-
-    // Player Bonus Stats
-    document.querySelector("#bonus-stats").innerHTML = `
-    <h4>Bonus Stats</h4>
-    <p><i class="fas fa-heart"></i>HP+${player.bonusStats.hp.toFixed(2).replace(rx, "$1")}%</p>
-    <p><i class="ra ra-sword"></i>ATK+${player.bonusStats.atk.toFixed(2).replace(rx, "$1")}%</p>
-    <p><i class="ra ra-round-shield"></i>DEF+${player.bonusStats.def.toFixed(2).replace(rx, "$1")}%</p>
-    <p><i class="ra ra-plain-dagger"></i>ATK.SPD+${player.bonusStats.atkSpd.toFixed(2).replace(rx, "$1")}%</p>
-    <p><i class="ra ra-dripping-blade"></i>VAMP+${player.bonusStats.vamp.toFixed(2).replace(rx, "$1")}%</p>
-    <p><i class="ra ra-lightning-bolt"></i>C.RATE+${player.bonusStats.critRate.toFixed(2).replace(rx, "$1")}%</p>
-    <p><i class="ra ra-focused-lightning"></i>C.DMG+${player.bonusStats.critDmg.toFixed(2).replace(rx, "$1")}%</p>`;
-}
-
-// Opens inventory
-const openInventory = () => {
-    sfxOpen.play();
-
-    dungeon.status.exploring = false;
-    inventoryOpen = true;
-    let openInv = document.querySelector('#inventory');
-    let dimDungeon = document.querySelector('#dungeon-main');
-    openInv.style.display = "flex";
-    dimDungeon.style.filter = "brightness(50%)";
-
-    sellAllElement.onclick = function () {
-        sfxOpen.play();
-        openInv.style.filter = "brightness(50%)";
-        let rarity = sellRarityElement.value;
-
-        defaultModalElement.style.display = "flex";
-        if (rarity == "All") {
-            defaultModalElement.innerHTML = `
-            <div class="content">
-                <p>Sell all of your equipment?</p>
-                <div class="button-container">
-                    <button id="sell-confirm">Sell All</button>
-                    <button id="sell-cancel">Cancel</button>
-                </div>
-            </div>`;
-        } else {
-            defaultModalElement.innerHTML = `
-            <div class="content">
-                <p>Sell all <span class="${rarity}">${rarity}</span> equipment?</p>
-                <div class="button-container">
-                    <button id="sell-confirm">Sell All</button>
-                    <button id="sell-cancel">Cancel</button>
-                </div>
-            </div>`;
-        }
-
-        let confirm = document.querySelector('#sell-confirm');
-        let cancel = document.querySelector('#sell-cancel');
-        confirm.onclick = function () {
-            sellAll(rarity);
-            defaultModalElement.style.display = "none";
-            defaultModalElement.innerHTML = "";
-            openInv.style.filter = "brightness(100%)";
-        };
-        cancel.onclick = function () {
-            sfxDecline.play();
-            defaultModalElement.style.display = "none";
-            defaultModalElement.innerHTML = "";
-            openInv.style.filter = "brightness(100%)";
-        };
-    };
-    sellRarityElement.onclick = function () {
-        sfxOpen.play();
-    };
-    sellRarityElement.onchange = function () {
-        let rarity = sellRarityElement.value;
-        sellRarityElement.className = rarity;
-    };
-}
-
-// Closes inventory
-const closeInventory = () => {
-    sfxDecline.play();
-
-    let openInv = document.querySelector('#inventory');
-    let dimDungeon = document.querySelector('#dungeon-main');
-    openInv.style.display = "none";
-    dimDungeon.style.filter = "brightness(100%)";
-    inventoryOpen = false;
-    if (!dungeon.status.paused) {
-        dungeon.status.exploring = true;
-    }
-}
-
-// Continue exploring if inventory is not open and the game is not paused
-const continueExploring = () => {
-    if (!inventoryOpen && !dungeon.status.paused) {
-        dungeon.status.exploring = true;
-    }
-}
-
-// Shows the level up popup
-const lvlupPopup = () => {
-    sfxLvlUp.play();
-    addCombatLog(`You leveled up! (Lv.${player.lvl - player.exp.lvlGained} > Lv.${player.lvl})`);
-
-    // Recover 20% extra hp on level up
-    player.stats.hp += Math.round((player.stats.hpMax * 20) / 100);
-    playerLoadStats();
-
-    // Show popup choices
-    lvlupPanel.style.display = "flex";
-    combatPanel.style.filter = "brightness(50%)";
-    const percentages = {
-        "hp": 10,
-        "atk": 8,
-        "def": 8,
-        "atkSpd": 3,
-        "vamp": 0.5,
-        "critRate": 1,
-        "critDmg": 6
-    };
-    generateLvlStats(2, percentages);
-}
-
-// Generates random stats for level up popup
-const generateLvlStats = (rerolls, percentages) => {
-    let selectedStats = [];
-    let stats = ["hp", "atk", "def", "atkSpd", "vamp", "critRate", "critDmg"];
-    while (selectedStats.length < 3) {
-        let randomIndex = Math.floor(Math.random() * stats.length);
-        if (!selectedStats.includes(stats[randomIndex])) {
-            selectedStats.push(stats[randomIndex]);
-        }
-    }
-
-    const loadLvlHeader = () => {
-        lvlupSelect.innerHTML = `
-            <h1>Level Up!</h1>
-            <div class="content-head">
-                <h4>Remaining: ${player.exp.lvlGained}</h4>
-                <button id="lvlReroll">Reroll ${rerolls}/2</button>
-            </div>
-        `;
-    }
-    loadLvlHeader();
-
-    const lvlReroll = document.querySelector("#lvlReroll");
-    lvlReroll.addEventListener("click", function () {
-        if (rerolls > 0) {
-            sfxSell.play();
-            rerolls--;
-            loadLvlHeader();
-            generateLvlStats(rerolls, percentages);
-        } else {
-            sfxDeny.play();
-        }
-    });
-
-    try {
-        for (let i = 0; i < 4; i++) {
-            let button = document.createElement("button");
-            button.id = "lvlSlot" + i;
-
-            let h3 = document.createElement("h3");
-            h3.innerHTML = selectedStats[i].replace(/([A-Z])/g, ".$1").replace(/crit/g, "c").toUpperCase() + " UP";
-            button.appendChild(h3);
-
-            let p = document.createElement("p");
-            p.innerHTML = `Increase bonus ${selectedStats[i].replace(/([A-Z])/g, ".$1").replace(/crit/g, "c").toUpperCase()} by ${percentages[selectedStats[i]]}%.`;
-            button.appendChild(p);
-
-            // Increase the selected stat for player
-            button.addEventListener("click", function () {
-                sfxItem.play();
-                player.bonusStats[selectedStats[i]] += percentages[selectedStats[i]];
-
-                if (player.exp.lvlGained > 1) {
-                    player.exp.lvlGained--;
-                    generateLvlStats(2, percentages);
-                } else {
-                    player.exp.lvlGained = 0;
-                    lvlupPanel.style.display = "none";
-                    combatPanel.style.filter = "brightness(100%)";
-                    leveled = false;
-                }
-
-                playerLoadStats();
-                saveData();
-            });
-
-            lvlupSelect.appendChild(button);
-        }
-    } catch (err) { }
-}
+  expect(player.exp.expCurr).toBeGreaterThan(0);
+  expect(spy).toHaveBeenCalled();
+});
