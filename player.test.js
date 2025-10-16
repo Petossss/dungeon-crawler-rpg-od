@@ -103,8 +103,14 @@ test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
 test('playerExpGain deve adicionar experiência e chamar playerLoadStats', () => {
   // garante que todos os bonusStats existem
   global.player.bonusStats = {
-    hp: 0, atk: 0, def: 0, atkSpd: 0, vamp: 0, critRate: 0, critDmg: 0
+    hp: 0, atk: 0, def: 0, atkSpd: 0,
+    vamp: 0, critRate: 0, critDmg: 0
   };
+
+  // 🔥 protege contra reescrita dentro do player.js
+  Object.keys(global.player.bonusStats).forEach(k => {
+    if (global.player.bonusStats[k] === undefined) global.player.bonusStats[k] = 0;
+  });
 
   const spy = jest.spyOn(window, 'playerLoadStats');
   const expAntes = global.player.exp.expCurr;
