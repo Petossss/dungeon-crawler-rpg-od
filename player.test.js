@@ -77,7 +77,43 @@ require('./assets/js/player.js');
 
 // 5️⃣ Acessa o player carregado pelo script
 const player = JSON.parse(localStorage.getItem("playerData"));
+beforeEach(() => {
+  // Simula um jogador salvo no localStorage
+  const fakePlayer = {
+    name: "Hero",
+    lvl: 1,
+    exp: {
+      expCurr: 0,
+      expCurrLvl: 0,
+      expMax: 100,
+      expMaxLvl: 100,
+      lvlGained: 0
+    },
+    stats: {
+      hp: 100,
+      hpMax: 100,
+      atk: 10,
+      def: 5,
+      atkSpd: 1.0,
+      vamp: 0,
+      critRate: 5,
+      critDmg: 50
+    },
+    bonusStats: {
+      hp: 0,
+      atk: 0,
+      def: 0,
+      atkSpd: 0,
+      critRate: 0,
+      critDmg: 0
+    },
+    gold: 0,
+    inCombat: false
+  };
 
+  localStorage.setItem("playerData", JSON.stringify(fakePlayer));
+  global.player = fakePlayer; // garante acesso global
+});
 // 6️⃣ Testes
 test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
   const prevLvl = player.lvl;
