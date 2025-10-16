@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --coverage --passWithNoTests"
+    "test": "jest --coverage"
   },
   "dependencies": {
     "howler": "^2.2.3"
