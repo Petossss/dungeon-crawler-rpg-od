@@ -273,3 +273,9 @@ const generateLvlStats = (rerolls, percentages) => {
         }
     } catch (err) { }
 }
+
+if (typeof window !== 'undefined') {
+  window.playerExpGain = playerExpGain;
+  window.playerLvlUp = playerLvlUp;
+  window.playerLoadStats = playerLoadStats;
+}
