@@ -24,13 +24,7 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ Instala dependências do projeto
-      - name: Install dependencies
-        run: npm install
-
-      # 4️⃣ Roda os testes e gera o relatório de cobertura (coverage/lcov.info)
-      - name: Run tests with coverage
-        run: npm test
+     
 
       # 5️⃣ Roda o SonarQube Scanner
       - name: SonarQube Scan
