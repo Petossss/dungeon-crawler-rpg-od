@@ -1,71 +1,12 @@
 /**
  * @jest-environment jsdom
  */
-global.player = JSON.parse(localStorage.getItem("playerData"));
-window.player = global.player; // 🔥 garante que o script enxergue o mesmo objeto
-beforeEach(() => {
-  jest.resetModules();
 
-  const fakePlayer = {
-    name: "Hero",
-    lvl: 1,
-    exp: {
-      expCurr: 0,
-      expCurrLvl: 0,
-      expMax: 100,
-      expMaxLvl: 100,
-      lvlGained: 0
-    },
-    stats: {
-      hp: 100,
-      hpMax: 100,
-      atk: 10,
-      def: 5,
-      atkSpd: 1.0,
-      vamp: 0,
-      critRate: 5,
-      critDmg: 50
-    },
-    bonusStats: {
-      hp: 0,
-      atk: 0,
-      def: 0,
-      atkSpd: 0,
-      critRate: 0,
-      critDmg: 0
-    },
-    gold: 0,
-    inCombat: false
-  };
+require('./assets/js/player.js');
 
-  global.localStorage = {
-    store: {},
-    getItem(key) { return this.store[key] || null; },
-    setItem(key, value) { this.store[key] = value.toString(); },
-    clear() { this.store = {}; }
-  };
-  localStorage.setItem("playerData", JSON.stringify(fakePlayer));
-
-  // 🧩 Define o player global ANTES de importar o script
-  global.player = JSON.parse(localStorage.getItem("playerData"));
-  window.player = global.player;
-
-  // Mocks necessários para player.js
-  global.enemy = { rewards: { exp: 50 } };
-  global.playerLoadStats = jest.fn();
-  global.lvlupPopup = jest.fn();
-  global.showEquipment = jest.fn();
-  global.showInventory = jest.fn();
-  global.applyEquipmentStats = jest.fn();
-  global.addCombatLog = jest.fn();
-  global.saveData = jest.fn();
-  global.nFormatter = (n) => n;
-  global.playerDead = false;
-  global.combatPanel = document.createElement('div');
-
+// Mocks básicos de DOM e funções que o player.js usa
+beforeAll(() => {
   document.body.innerHTML = `
-    <div id="lvlupSelect"></div>
-    <div id="lvlupPanel"></div>
     <div id="player-name"></div>
     <div id="player-exp"></div>
     <div id="player-gold"></div>
@@ -76,6 +17,10 @@ beforeEach(() => {
     <div id="player-combat-info"></div>
   `;
 
+  global.nFormatter = (val) => val; // mock simples
+  global.showEquipment = jest.fn();
+  global.showInventory = jest.fn();
+  global.applyEquipmentStats = jest.fn();
   global.playerHpElement = document.createElement('div');
   global.playerAtkElement = document.createElement('div');
   global.playerDefElement = document.createElement('div');
@@ -83,40 +28,74 @@ beforeEach(() => {
   global.playerVampElement = document.createElement('div');
   global.playerCrateElement = document.createElement('div');
   global.playerCdmgElement = document.createElement('div');
-
-  require('./assets/js/player.js');
+  global.playerDead = false;
 });
 
-// 6️⃣ Testes
-test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
-  global.player.exp.expCurr = global.player.exp.expMax + 10; // 🔥 força level up
-  const prevLvl = global.player.lvl;
-  const prevExpMax = global.player.exp.expMax;
-
-  window.playerLvlUp();
-
-  expect(global.player.lvl).toBe(prevLvl + 1);
-  expect(global.player.exp.expMax).toBeGreaterThan(prevExpMax);
-  expect(global.player.bonusStats.hp).toBeGreaterThanOrEqual(0);
-});
-
-test('playerExpGain deve adicionar experiência e chamar playerLoadStats', () => {
-  // garante que todos os bonusStats existem
-  global.player.bonusStats = {
-    hp: 0, atk: 0, def: 0, atkSpd: 0,
-    vamp: 0, critRate: 0, critDmg: 0
+beforeEach(() => {
+  // Mocka o player e o inimigo
+  global.player = {
+    name: 'Hero',
+    lvl: 1,
+    exp: {
+      expCurr: 0,
+      expMax: 100,
+      expCurrLvl: 0,
+      expMaxLvl: 100,
+      lvlGained: 0
+    },
+    bonusStats: {
+      hp: 0,
+      atk: 0,
+      def: 0,
+      atkSpd: 0,
+      vamp: 0,
+      critRate: 0,
+      critDmg: 0
+    },
+    stats: {
+      hp: 100,
+      hpMax: 100,
+      atk: 10,
+      def: 5,
+      atkSpd: 1.0,
+      vamp: 0,
+      critRate: 0,
+      critDmg: 0
+    },
+    gold: 100,
+    inCombat: false
   };
 
-  // 🔥 protege contra reescrita dentro do player.js
-  Object.keys(global.player.bonusStats).forEach(k => {
-    if (global.player.bonusStats[k] === undefined) global.player.bonusStats[k] = 0;
+  global.enemy = {
+    rewards: {
+      exp: 150 // força o level up
+    }
+  };
+});
+
+describe('Funções do Player', () => {
+  test('playerLvlUp deve aumentar o nível e os atributos corretamente', () => {
+    const prevLvl = global.player.lvl;
+    const prevExpMax = global.player.exp.expMax;
+
+    window.playerLvlUp();
+
+    expect(global.player.lvl).toBe(prevLvl + 1);
+    expect(global.player.exp.expMax).toBeGreaterThan(prevExpMax);
+    expect(global.player.bonusStats.hp).toBeGreaterThan(0);
+    expect(global.player.bonusStats.atk).toBeGreaterThan(0);
+    expect(global.player.bonusStats.def).toBeGreaterThan(0);
   });
 
-  const spy = jest.spyOn(window, 'playerLoadStats');
-  const expAntes = global.player.exp.expCurr;
+  test('playerExpGain deve adicionar experiência e chamar playerLoadStats', () => {
+    const spy = jest.spyOn(window, 'playerLoadStats');
 
-  window.playerExpGain();
+    const expAntes = global.player.exp.expCurr;
+    window.playerExpGain();
+    const expDepois = global.player.exp.expCurr;
 
-  expect(global.player.exp.expCurr).toBe(expAntes + global.enemy.rewards.exp);
-  expect(spy).toHaveBeenCalled();
+    expect(expDepois).toBeGreaterThan(expAntes);
+    expect(global.player.lvl).toBe(2); // deve subir de nível
+    expect(spy).toHaveBeenCalled();
+  });
 });
