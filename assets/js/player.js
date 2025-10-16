@@ -124,3 +124,12 @@ if (typeof window !== "undefined") {
   window.playerLvlUp = playerLvlUp;
   window.playerLoadStats = playerLoadStats;
 }
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    player,
+    playerLvlUp,
+    playerExpGain,
+    playerLoadStats,
+  };
+}
