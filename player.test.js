@@ -81,7 +81,7 @@ beforeEach(() => {
 
 // Importa o script após mocks
 beforeAll(() => {
-  require("../assets/js/player.js");
+  require("./assets/js/player.js");
 });
 
 describe("Funções do Player", () => {
